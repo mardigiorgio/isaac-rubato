@@ -22,7 +22,7 @@ always landing on the boundary.
 
 Measured on the Trossen cube-lift, the internal step spans ~4000:1, from microseconds at contact to
 milliseconds in free motion, at ~37 sub-steps/frame under contact vs ~3 on a trivial scene
-(`docs/adaptive_dt_proof.png`).
+(`experiments/trossen_cube_lift/adaptive_dt_proof.png`).
 
 ## Install
 
@@ -47,17 +47,12 @@ Open the Isaac Sim editor on the Newton backend:
 rubato
 ```
 
-Train a policy with the adaptive solver, watching the dt / sub-step telemetry:
+In any Isaac Lab task, the adaptive solver is selected three ways: the config flag
+`MJWarpSolverCfg(adaptive=True)`, the env var `NEWTON_ADAPTIVE=1`, or the GUI toggle (the
+`newton_adaptive_ui` Kit extension). Setting `NEWTON_ADAPTIVE_LOG_EVERY=N` writes the per-frame dt and
+sub-step counts to `/tmp/newton_adaptive.log`. Drop `NEWTON_ADAPTIVE` to run stock Newton.
 
-```bash
-NEWTON_ADAPTIVE=1 NEWTON_ADAPTIVE_LOG_EVERY=10 \
-  demos/trossen/run_native.sh demos/trossen/train_teacher.py --headless --num_envs 16
-tail -f /tmp/newton_adaptive.log
-```
-
-The adaptive solver can be selected three ways: the config flag `MJWarpSolverCfg(adaptive=True)`, the env
-var `NEWTON_ADAPTIVE=1`, or the GUI toggle (the `newton_adaptive_ui` Kit extension). Drop
-`NEWTON_ADAPTIVE` to run stock Newton.
+A minimal cartpole training demo will live under `demos/` once the adaptive backend is dialed in.
 
 ## Built on
 
