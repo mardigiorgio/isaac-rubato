@@ -20,10 +20,6 @@ policy, rewards, observations, and rendering unchanged. The control interface is
 action is zero-order-held across the interval, and the solver subdivides time only *within* the interval,
 always landing on the boundary.
 
-Measured on the Trossen cube-lift, the internal step spans ~4000:1, from microseconds at contact to
-milliseconds in free motion, at ~37 sub-steps/frame under contact vs ~3 on a trivial scene
-(`experiments/trossen_cube_lift/adaptive_dt_proof.png`).
-
 ## Install
 
 Prerequisites: Ubuntu, an NVIDIA GPU with driver >= 580, [`uv`](https://docs.astral.sh/uv/) and `git`, and
