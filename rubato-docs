@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# rubato-docs — serve the interactive documentation site (live reload + search) at http://127.0.0.1:8000
+cd "$HOME/Documents/code/isaac-rubato" || exit 1
+echo "docs -> http://127.0.0.1:8000   (Ctrl-C to stop)"
+exec uvx --with mkdocs-material mkdocs serve "$@"

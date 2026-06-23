@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+
+# Venvs / envs
+.venv/
+env_*/
+venv/
+
+# Editor / Kit / OS cruft
+imgui.ini
+.DS_Store
+*.swp
+
+# Build / artifact scratch (data lives outside the repo, under the data root)
+build/
+dist/
+*.log
+
+# MkDocs build output
+site/

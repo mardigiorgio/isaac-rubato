@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# rubato — open the Isaac Sim editor with the FULL Newton physics stack:
+#   isaacsim.physics.newton (simulator) + .tensors (the 'newton' backend) + .ui.
+# Drop an object, press Play -> it falls on Newton. No training, no flags.
+# Override with a different experience if you want, e.g.:  rubato isaacsim.exp.full   (stock PhysX)
+if [ $# -eq 0 ]; then
+  set -- isaacsim.exp.full.newton
+fi
+exec env OMNI_KIT_ACCEPT_EULA=YES \
+  "$HOME/Documents/code/IsaacLab/env_isaaclab/bin/isaacsim" "$@"
