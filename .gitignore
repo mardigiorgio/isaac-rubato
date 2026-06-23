@@ -20,5 +20,3 @@ build/
 dist/
 *.log
 
-# MkDocs build output
-site/
