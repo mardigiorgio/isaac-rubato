@@ -1,0 +1,4 @@
+# W&B local run cache (offline + online) from train.sh / validate.sh
+wandb/
+# stray local copy of the shared adaptive telemetry log
+newton_adaptive.log
