@@ -11,7 +11,7 @@
 # Idempotent: skips the patch if already applied; re-copies the extension.
 #
 # Usage:
-#   scripts/rl/adaptive_isaac/apply_isaaclab_delta.sh [ISAACLAB_DIR]
+#   integration/apply_isaaclab_delta.sh [ISAACLAB_DIR]
 # Defaults ISAACLAB_DIR to $ISAACLAB or ~/Documents/code/IsaacLab.
 set -euo pipefail
 
