@@ -2,7 +2,7 @@
 
 Physical-parameter DR (mass, friction, motor strength) is applied at reset by
 writing Newton-side ``Model`` arrays then calling ``solver.notify_model_changed``
-— the public path that re-pushes to MuJoCo-Warp and recomputes derived inertial
+- the public path that re-pushes to MuJoCo-Warp and recomputes derived inertial
 fields. Velocity pushes and observation noise are free (state/obs writes) and run
 per step.
 
@@ -145,7 +145,7 @@ class DomainRandomizer:
         self.body_mass[trunk] = self.nominal_mass[trunk] + _uniform(*c.base_mass_add, k, self.device)
 
         # Friction: one per-world factor over the robot shapes (trailing ground
-        # shape excluded). Vectorized — env_ids stays on device, no host sync.
+        # shape excluded). Vectorized - env_ids stays on device, no host sync.
         spw = self.shapes_per_world
         fric = _uniform(*c.friction, k, self.device)
         mu_view = self.shape_mu[: n * spw].view(n, spw)

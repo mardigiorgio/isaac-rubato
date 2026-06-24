@@ -38,7 +38,7 @@ def _on_changed(model):
 _window = ui.Window("Newton Integrator", width=360, height=150)
 with _window.frame:
     with ui.VStack(spacing=10, height=0):
-        ui.Label("Newton solver — timestepping mode", style={"font_size": 16})
+        ui.Label("Newton solver - timestepping mode", style={"font_size": 16})
         with ui.HStack(height=26, spacing=8):
             _cb = ui.CheckBox(width=22)
             _cb.model.set_value(_settings.get_as_bool(_SETTING))

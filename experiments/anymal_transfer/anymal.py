@@ -5,7 +5,7 @@ ANYmal-C locomotion convention (48-dim observation, 12-dim action), matching
 the pretrained policy shipped with the ``anybotics_anymal_c`` asset.
 
 All per-step functions are fully vectorized (all worlds at once) over zero-copy
-``wp.to_torch`` views — no per-world Python loop, no ``.numpy()`` in the hot path.
+``wp.to_torch`` views - no per-world Python loop, no ``.numpy()`` in the hot path.
 """
 
 from __future__ import annotations
@@ -185,7 +185,7 @@ def action_to_targets(action: torch.Tensor, default_q: torch.Tensor, mujoco_idx:
 
 
 # Reward weights (legged_gym / Isaac Lab ANYmal-flat lineage). Contact-dependent
-# terms (feet_air_time, collision) are disabled in v1 — see TERMINATION note.
+# terms (feet_air_time, collision) are disabled in v1 - see TERMINATION note.
 REWARD_WEIGHTS = {
     "lin_vel_xy": 1.0,
     "ang_vel_z": 0.5,

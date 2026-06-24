@@ -1,4 +1,4 @@
-# Trossen Stationary AI — cube pickup (teacher/student, Isaac Lab)
+# Trossen Stationary AI - cube pickup (teacher/student, Isaac Lab)
 
 Privileged-state PPO teacher → depth-camera CNN student (distillation) that makes one
 arm of the Trossen Stationary AI bimanual rig pick a cube off the table.
@@ -10,7 +10,7 @@ See `../README.md` for the top-level Thread A / Thread B signpost.
 ## Environment
 
 Runs natively on Ubuntu against a binary Isaac Sim install (under `~/Documents/code/`,
-beside this repo and the IsaacLab clone) — no container. Scripts go through the
+beside this repo and the IsaacLab clone) - no container. Scripts go through the
 `run_native.sh` launcher, which calls `${ISAACLAB:-~/Documents/code/IsaacLab}/isaaclab.sh -p`.
 Filesystem roots (data, assets, logs, artifacts) come from `trossen_cube/paths.py`
 (default data root `~/Documents/code/isaac-data`, overridable per-root via env var).

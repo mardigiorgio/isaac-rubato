@@ -36,7 +36,7 @@ class NewtonAdaptiveUIExtension(omni.ext.IExt):
     def _build_ui(self):
         with self._window.frame:
             with ui.VStack(spacing=10, height=0):
-                ui.Label("Newton solver — timestepping mode", style={"font_size": 16})
+                ui.Label("Newton solver - timestepping mode", style={"font_size": 16})
                 with ui.HStack(height=26, spacing=8):
                     checkbox = ui.CheckBox(width=22)
                     checkbox.model.set_value(self._settings.get_as_bool(ADAPTIVE_SETTING))

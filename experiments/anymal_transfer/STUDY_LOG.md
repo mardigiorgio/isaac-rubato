@@ -1,4 +1,4 @@
-# Adaptive-solver sim-to-real GATED study — ledger
+# Adaptive-solver sim-to-real GATED study - ledger
 
 > **!!! CONCLUSION OVERTURNED -- THE PI WAS RIGHT (2026-06-16) !!!** The earlier "integration
 > doesn't matter / KILL" conclusion below was WRONG: it rested on a broken metric AND a real bug in
@@ -47,8 +47,8 @@ Status legend: [ ] todo · [~] in progress · [x] done/verified · [KILL]/[GO] g
 
 ---
 
-## Phase 0a — paired-eval RNG + single-term presets  [x] VERIFIED
-**Gate:** prerequisite — make the transfer gap isolate the backend.
+## Phase 0a - paired-eval RNG + single-term presets  [x] VERIFIED
+**Gate:** prerequisite - make the transfer gap isolate the backend.
 
 Code: `DRConfig.single(term)`; dedicated `ic_gen`/`cmd_gen` torch generators seeded
 identically across backends and decoupled from the DR stream; `EnvConfig.eval_seed`;
@@ -67,7 +67,7 @@ Validation (real output, `uv run --extra rl -m scripts.rl.anymal_study.check_pha
 ```
 => the gap now isolates the backend. Bit-exact pairing confirmed.
 
-## Phase 0b — error-budget ranking (frozen policy)  [KILL] V2 transfer claim dead
+## Phase 0b - error-budget ranking (frozen policy)  [KILL] V2 transfer claim dead
 **Gate:** is the integrator-only gap (id vs ref_tol AND ref_dt) statistically nonzero AND
 within ~5x of a dominant physical term? **ANSWER: NO.**
 Policy `runs/cenic_dr-off_s1/model_1000.pt` (4096 envs, 1000 iters, ep-len maxed, lvte 0.15).
@@ -93,13 +93,13 @@ claim; do NOT port to humanoid for transfer (its dominant terms are even larger)
 SCOPE CAVEAT: flat-ground walking = mild contact; the integrator's value should be largest in
 stiff contact, which is the V1 data-fidelity question, pursued next.
 
-## Phase 1/2/3 (V2 transfer) — NOT PURSUED (gated out by Phase 0b KILL)
+## Phase 1/2/3 (V2 transfer) - NOT PURSUED (gated out by Phase 0b KILL)
 DR-on interaction, matched-compute, ref_actuator construct-validity, and the H1/G1 port are
 shelved: with no integrator-induced transfer gap on the quadruped, there is nothing for them to
 rescue. Re-open only if V1 shows the integrator matters in stiff contact AND a transfer signal
 reappears there.
 
-## V1 — data-fidelity track (NOW THE ACTIVE THESIS)  [~] IN PROGRESS
+## V1 - data-fidelity track (NOW THE ACTIVE THESIS)  [~] IN PROGRESS
 **Gate:** does the adaptive solver produce measurably more accurate, lower-artifact trajectory data per unit
 compute than fixed-step, against a high-fidelity (ref_dt/ref_tol) gold rollout -- especially in
 contact-rich / foot-strike regimes where Phase 0b's mild-contact caveat says it should?

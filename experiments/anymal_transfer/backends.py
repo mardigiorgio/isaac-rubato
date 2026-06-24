@@ -119,7 +119,7 @@ class Backend:
         return s0, s1
 
     def diagnostics(self) -> dict | None:
-        """Adaptive-only adaptive-stepping diagnostics. Reads device arrays — call
+        """Adaptive-only adaptive-stepping diagnostics. Reads device arrays - call
         OUTSIDE the hot path (e.g. gated logging only)."""
         if not self.is_adaptive:
             return None
