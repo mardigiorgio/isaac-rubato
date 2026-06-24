@@ -58,7 +58,11 @@ index-strategy = "unsafe-best-match"
 #    custom fork is 1.4.0.dev0. The override drops Isaac Sim's exact pin so the
 #    path source (below) supplies the fork. This is the lockfile equivalent of
 #    `pip install -e ../newton-adaptive` on top of a stock isaacsim install.
-override-dependencies = ["numpy>=2", "newton[sim]"]
+#  - torch==2.10.0 / torchvision==0.25.0: isaacsim-core declares torchvision==0.26.0
+#    (-> torch 2.11.0), but Isaac Lab's install.py pins torch 2.10.0 and that is the
+#    verified working full-stack combo. Pin to it so the lock reproduces the tested
+#    environment rather than isaacsim's standalone metadata.
+override-dependencies = ["numpy>=2", "newton[sim]", "torch==2.10.0", "torchvision==0.25.0"]
 # Non-package project: `uv sync` builds the env from the lock without trying to
 # build isaac-rubato itself as a wheel. (Replaces the original's misuse of an
 # empty [tool.uv.workspace] table for this purpose.)
