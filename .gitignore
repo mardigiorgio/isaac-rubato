@@ -20,3 +20,8 @@ build/
 dist/
 *.log
 
+
+# W&B run cache (anywhere in the tree) + secrets that must never be committed
+wandb/
+.netrc
+*.key

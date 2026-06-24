@@ -17,7 +17,7 @@ Isaac Lab clone is not at `~/Documents/code/IsaacLab`.
 
 ```bash
 $ISAACLAB/env_isaaclab/bin/wandb login     # or: export WANDB_API_KEY=<key from wandb.ai/authorize>
-export WANDB_ENTITY=marcodigiorgioyt         # your wandb user or team
+export WANDB_ENTITY=<your-wandb-entity>     # your wandb user or team
 ```
 
 Runs land in project `newton-adaptive-study`.
