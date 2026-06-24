@@ -1,0 +1,103 @@
+[project]
+name = "isaac-rubato"
+version = "0.1.0"
+description = "Adaptive-timestepping solver wired into the Isaac Sim / Isaac Lab / Newton stack."
+readme = "README.md"
+# Isaac Lab pins requires-python = ">=3.12,<3.13"; the isaacsim 6.0.0.1 wheels
+# are cp312-only. Match that exactly so `uv sync` builds a 3.12 venv.
+requires-python = ">=3.12,<3.13"
+
+# ---------------------------------------------------------------------------
+# The platform's pip-installable layer, consolidated for `uv lock`.
+#
+# What lives here: the heavy, pinned third-party stack that has nothing to do
+# with Isaac Lab's monorepo installer -- Isaac Sim (the whole simulator, as
+# wheels), the cu128 PyTorch floor, and the custom Newton fork (the adaptive
+# solver) as a live *path* editable checkout. These resolve cleanly and
+# reproducibly from a lockfile.
+#
+# What does NOT live here: Isaac Lab. It is a monorepo of 15 editable
+# sub-packages installed by its own `./isaaclab.sh -i` orchestration (symlinks,
+# RL-framework extras, per-package editable installs) that uv cannot drive from
+# `sync`. It is a documented post-sync step. See design_notes.
+# ---------------------------------------------------------------------------
+dependencies = [
+    # Isaac Sim 6.0 as pip wheels -- the full simulator, not a viz add-on.
+    # The isaacsim.physics.newton extension the platform patches ships INSIDE
+    # this wheel set; there is no separate _isaac_sim binary. ==6.0.0 resolves
+    # to an older 6.0.0.0, so pin .1. [all,extscache] pulls the component set.
+    "isaacsim[all,extscache]==6.0.0.1",
+
+    # cu128 PyTorch. Isaac Sim 6.0.0.1's own wheels constrain torch/torchvision,
+    # so these are FLOORS, not exact pins -- an exact `torchvision==0.25.0`
+    # fought isaacsim's constraint and dead-locked the resolve. Let isaacsim and
+    # the floor co-resolve; the lock then records the single chosen version.
+    "torch>=2.10.0",
+    "torchvision>=0.25.0",
+
+    # The custom Newton fork = stock Newton + the adaptive solver, as a *path*
+    # editable checkout (see [tool.uv.sources]). Dist name is `newton`; [sim]
+    # pulls warp-lang / mujoco / mujoco-warp. No version pin here: the fork's
+    # own metadata governs, and pinning `newton==<older>` clashed with the
+    # fork's version. Installed editable so the working tree is the live import
+    # path.
+    "newton[sim]",
+]
+
+# ---------------------------------------------------------------------------
+# Resolver behavior. Isaac Sim's extscache wheel set drags in transitive
+# prereleases, so allow them; and combine candidates across indexes so the
+# NVIDIA set + PyPI resolve together instead of stopping at the first index.
+# ---------------------------------------------------------------------------
+[tool.uv]
+prerelease = "allow"
+index-strategy = "unsafe-best-match"
+# Version overrides (do NOT touch sources):
+#  - numpy>=2 across the stack (Isaac Lab forces this the same way).
+#  - newton[sim] unpinned: isaacsim-core 6.0.0.1 hard-pins newton==1.2.0, but the
+#    custom fork is 1.4.0.dev0. The override drops Isaac Sim's exact pin so the
+#    path source (below) supplies the fork. This is the lockfile equivalent of
+#    `pip install -e ../newton-adaptive` on top of a stock isaacsim install.
+override-dependencies = ["numpy>=2", "newton[sim]"]
+# Non-package project: `uv sync` builds the env from the lock without trying to
+# build isaac-rubato itself as a wheel. (Replaces the original's misuse of an
+# empty [tool.uv.workspace] table for this purpose.)
+package = false
+
+# ---------------------------------------------------------------------------
+# Per-package sources. Keys are *distribution* names. Required because both
+# named indexes are explicit=true -- only packages pinned here resolve from
+# them; everything else (mujoco, mujoco-warp, rsl-rl-lib, numpy, gymnasium...)
+# comes from PyPI.
+# ---------------------------------------------------------------------------
+[tool.uv.sources]
+isaacsim    = { index = "nvidia" }
+torch       = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+# The fork's own pyproject sets [project.name] = "newton", so uv matches this
+# source by dist name. It MUST be a PATH source with editable=true: uv only
+# supports editable installs for path/directory sources -- `editable = true` on
+# a `git = ...` source is rejected at `uv lock` parse time. The path points at
+# the sibling clone the installer makes (`../newton-adaptive`, next to this
+# repo), which must exist before `uv lock` / `uv sync` runs. Because a
+# [tool.uv.sources] entry binds the dist name `newton` everywhere it appears, it
+# also takes precedence over Isaac Lab's git-pinned upstream `newton` whenever
+# the two resolve together (see design_notes).
+newton      = { path = "../newton-adaptive", editable = true }
+
+# ---------------------------------------------------------------------------
+# Named indexes.
+#   - PyPI stays the implicit, lowest-priority default (catch-all).
+#   - nvidia (explicit): all isaacsim-* 6.0.0.1 wheels + warp-lang.
+#   - pytorch-cu128 (explicit): torch / torchvision +cu128.
+# explicit=true => nothing leaks from these unless pinned in [tool.uv.sources].
+# ---------------------------------------------------------------------------
+[[tool.uv.index]]
+name = "nvidia"
+url = "https://pypi.nvidia.com"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
