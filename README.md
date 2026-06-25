@@ -48,18 +48,33 @@ uv run python install/verify.py
 
 ## Getting started
 
-Open the Isaac Sim editor on the Newton backend (from the repo root):
+Activate the platform venv first, so `isaaclab.sh` and the launcher use it (without this, a fresh
+install falls back to the wrong Python):
+
+```bash
+source .venv/bin/activate     # Isaac Sim + Isaac Lab + the Newton fork
+```
+
+**Editor** - build/inspect scenes on the Newton backend (from the repo root):
 
 ```bash
 ./isaac-rubato
 ```
 
-In any Isaac Lab task, the adaptive solver is selected three ways: the config flag
-`MJWarpSolverCfg(adaptive=True)`, the env var `NEWTON_ADAPTIVE=1`, or the GUI toggle (the
-`newton_adaptive_ui` Kit extension). Setting `NEWTON_ADAPTIVE_LOG_EVERY=N` writes the per-frame dt and
-sub-step counts to `/tmp/newton_adaptive.log`. Drop `NEWTON_ADAPTIVE` to run stock Newton.
+**Training** - the fixed-vs-adaptive experiments live in `experiments/`. Each is a self-contained
+folder (its `env.py` + run script); envs are loaded from the repo at runtime, nothing extra to install:
 
-A minimal cartpole training demo will live under `demos/` once the adaptive backend is dialed in.
+```bash
+cd experiments/06-30-2026-experiments
+bash cartpole/validate.sh                       # keyless smoke -- proves the adaptive path trains
+SOLVER=fixed    VIDEO=1 bash franka-reach/train.sh
+SOLVER=adaptive VIDEO=1 bash franka-reach/train.sh
+```
+
+In any task the adaptive solver is selected three ways: the config flag `MJWarpSolverCfg(adaptive=True)`,
+the env var `NEWTON_ADAPTIVE=1` (what the train scripts use), or the GUI toggle (the `newton_adaptive_ui`
+Kit extension). `NEWTON_ADAPTIVE_LOG_EVERY=N` writes per-frame dt + sub-step counts to
+`/tmp/newton_adaptive.log`. Drop `NEWTON_ADAPTIVE` to run stock Newton.
 
 ## Built on
 
