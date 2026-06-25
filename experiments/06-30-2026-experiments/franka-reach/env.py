@@ -6,6 +6,8 @@ so env + run script + scenes travel together. Loaded by train.sh via `--external
 env.register`.
 """
 
+import os
+
 import gymnasium as gym
 from isaaclab.utils.configclass import configclass
 from isaaclab_tasks.core.reach.config.franka.joint_pos_env_cfg import FrankaReachEnvCfg
@@ -20,6 +22,13 @@ class FrankaReachRubatoCfg(FrankaReachEnvCfg):
         # franka-reach overflows the stock Newton buffer; give it headroom
         self.sim.physics.newton_mjwarp.solver_cfg.njmax = 128
         self.sim.physics.newton_mjwarp.solver_cfg.nconmax = 32
+        # Diagnostic toggle (off by default): disable the action_rate/joint_vel penalty curriculum
+        # (the 50x/10x weight ramp at ~iter 188). Tests whether that effort-penalty ramp is what
+        # drives the adaptive-solver position-tracking decline. Set NO_EFFORT_CURRICULUM=1 to keep
+        # the effort penalties at their tiny base weight for the whole run.
+        if os.environ.get("NO_EFFORT_CURRICULUM") == "1":
+            self.curriculum.action_rate = None
+            self.curriculum.joint_vel = None
 
 
 def register():
