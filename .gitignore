@@ -25,3 +25,6 @@ dist/
 wandb/
 .netrc
 *.key
+
+# RL training logs (checkpoints/tfevents/videos) — tracked in W&B, not git
+logs/
