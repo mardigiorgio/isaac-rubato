@@ -9,17 +9,27 @@ stiff, while trivial tasks stay at the frame boundary.
 Isaac Lab's `env.sim.physics=newton_mjwarp` is stepped by the **native** `isaaclab_newton.NewtonMJWarpManager`
 - it builds the solver and steps it itself, explicitly bypassing the Isaac Sim wheel extension
 `isaacsim.physics.newton` ("no isaacsim.physics.newton extension needed", `newton_manager.py:392`). So the
-integration is **5 edits to that manager + its cfg** (editable Isaac Lab source = the "modified Isaac Lab"),
-captured in [`isaaclab_newton_adaptive.patch`](isaaclab_newton_adaptive.patch):
+integration is **6 edits** - to that manager + its cfg, plus the base `newton_manager.py` (editable Isaac Lab
+source = the "modified Isaac Lab"), captured in [`isaaclab_newton_adaptive.patch`](isaaclab_newton_adaptive.patch):
 
 1. `MJWarpSolverCfg`: `adaptive` + `adaptive_tol`/`adaptive_dt_mode`/`adaptive_dt_init`/`adaptive_dt_min` fields.
 2. `NewtonMJWarpManager._build_solver`: when `adaptive`, construct `SolverMuJoCoAdaptive` (popping the kwargs it
    forces - `use_mujoco_contacts`/`use_mujoco_cpu`/`separate_worlds`) instead of stock `SolverMuJoCo`.
 3. `NewtonMJWarpManager._step_solver`: adaptive → `step_dt(substep_dt, s0, s1, control)` once per substep (the
-   stock 5-positional `step()` is incompatible; `step_dt` owns the inner error-controlled loop + its contacts).
+   stock 5-positional `step()` is incompatible; `step_dt` owns the inner error-controlled loop + its contacts),
+   then consume Fix A's `solver.diverged` latch via `solver.reset(state_0, world_mask=solver.diverged, flags=0)`
+   so a world that hit the `dt_min` floor non-finite (last-good state held) gets its controller buffers cleared.
 4. `_supports_cuda_graph_capture` → `False` when adaptive (the per-frame substep count is data-dependent).
 5. `_log_solver_debug` → throttled **file** telemetry (`$NEWTON_ADAPTIVE_LOG`, default `/tmp/newton_adaptive.log`)
    - Kit swallows stdout, so the dt/substep proof must go to a file.
+6. **Fix C (per-world controller reset on episode reset).** The adaptive solver keeps persistent per-world
+   buffers (`dt`/`ideal_dt`/`dt_half`, `sim_time`/`next_time`, accepted/diverged latches) that are never
+   restored on an env reset, so pre-reset controller state would leak into the post-reset `(s,a)->s'` map.
+   The base `newton_manager.py` `step()` calls a new no-op hook `_reset_solver_state(world_reset_mask)` right
+   after `eval_fk` and **before** the reset mask is zeroed; `NewtonMJWarpManager` overrides it to call
+   `solver.reset(state_0, world_mask=world_reset_mask, flags=0)` (`flags=0` keeps the env's randomized
+   post-reset joint state - only MuJoCo warm-start + the adaptive controller buffers are restored). This is
+   the only edit that touches the base `newton_manager.py` (a new `diff --git` section in the patch).
 
 Re-apply on a fresh Isaac Lab clone: `bash integration/apply_isaaclab_delta.sh ../IsaacLab` (idempotent; the
 install runs this).

@@ -1,12 +1,14 @@
 """Shadow Hand in-hand cube reorient, repo-resident.
 
 Stock Isaac Lab `Isaac-Reorient-Cube-Shadow-Direct` (a DirectRLEnv), re-registered here as
-this experiment's env + edit-home so env + run script + scenes travel together. Loaded by
-train.sh via `--external_callback env.register`.
+this experiment's env + edit-home so env + run script + scenes travel together. Loaded via the
+standard isaaclab.sh train command with `--external_callback env.register` (registers the task +
+sets the constraint-buffer sizes here).
 
 This is the contact-rich task the adaptive-solver study targets: stiff fingertip/cube contact
-is exactly where step-doubling subdivides time. The solver (fixed vs adaptive) is selected by
-train.sh via NEWTON_ADAPTIVE, not here -- this file only carries task-level edits.
+is exactly where step-doubling subdivides time. The solver variant is selected by the
+`--solver {mujoco,mujoco-adaptive,sap,sap-adaptive}` CLI flag, not here -- this file only carries
+task-level edits.
 """
 
 import gymnasium as gym

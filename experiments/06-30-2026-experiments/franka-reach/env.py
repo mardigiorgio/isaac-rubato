@@ -2,8 +2,10 @@
 
 Stock franka-reach + the Newton constraint-buffer fix: franka-reach overflows the stock
 njmax=50 (it needs >=53), which silently drops constraints. Lives in this experiment folder
-so env + run script + scenes travel together. Loaded by train.sh via `--external_callback
-env.register`.
+so env + run script + scenes travel together. Loaded via the standard isaaclab.sh train
+command with `--external_callback env.register` (which registers the task + sets the buffer
+sizes here). The solver variant is selected by the `--solver {mujoco,mujoco-adaptive,sap,sap-adaptive}`
+CLI flag -- this file carries only task-level edits, not solver selection.
 """
 
 import gymnasium as gym
