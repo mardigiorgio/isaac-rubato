@@ -22,7 +22,7 @@ class FrankaReachRubatoCfg(FrankaReachEnvCfg):
         # franka-reach overflows the stock Newton buffer; give it headroom
         self.sim.physics.newton_mjwarp.solver_cfg.njmax = 128
         self.sim.physics.newton_mjwarp.solver_cfg.nconmax = 32
-        self.sim.physics.newton_mjwarp.solver_cfg.adaptive_tol = 1e-4
+        self.sim.physics.newton_mjwarp.solver_cfg.adaptive_tol = 1e-3
 
 
 def register():

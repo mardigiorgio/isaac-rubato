@@ -15,10 +15,11 @@ source = the "modified Isaac Lab"), captured in [`isaaclab_newton_adaptive.patch
 1. `MJWarpSolverCfg`: `adaptive` + `adaptive_tol`/`adaptive_dt_mode`/`adaptive_dt_init`/`adaptive_dt_min` fields.
 2. `NewtonMJWarpManager._build_solver`: when `adaptive`, construct `SolverMuJoCoAdaptive` (popping the kwargs it
    forces - `use_mujoco_contacts`/`use_mujoco_cpu`/`separate_worlds`) instead of stock `SolverMuJoCo`.
-3. `NewtonMJWarpManager._step_solver`: adaptive → `step_dt(substep_dt, s0, s1, control)` once per substep (the
-   stock 5-positional `step()` is incompatible; `step_dt` owns the inner error-controlled loop + its contacts),
-   then consume Fix A's `solver.diverged` latch via `solver.reset(state_0, world_mask=solver.diverged, flags=0)`
-   so a world that hit the `dt_min` floor non-finite (last-good state held) gets its controller buffers cleared.
+3. `NewtonMJWarpManager._step_solver`: adaptive → the boundary `step(state_0, state_1, control, contacts,
+   substep_dt)` once per substep (the adaptive solver owns the inner error-controlled step-doubling loop +
+   its own contacts + a solver-internal single-level per-N CUDA-graph capture), then consume Fix A's
+   `solver.diverged` latch via `solver.reset(state_0, world_mask=solver.diverged, flags=0)` so a world that
+   hit the `dt_min` floor non-finite (last-good state held) gets its controller buffers cleared.
 4. `_supports_cuda_graph_capture` → `False` when adaptive (the per-frame substep count is data-dependent).
 5. `_log_solver_debug` → throttled **file** telemetry (`$NEWTON_ADAPTIVE_LOG`, default `/tmp/newton_adaptive.log`)
    - Kit swallows stdout, so the dt/substep proof must go to a file.
@@ -32,7 +33,49 @@ source = the "modified Isaac Lab"), captured in [`isaaclab_newton_adaptive.patch
    the only edit that touches the base `newton_manager.py` (a new `diff --git` section in the patch).
 
 Re-apply on a fresh Isaac Lab clone: `bash integration/apply_isaaclab_delta.sh ../IsaacLab` (idempotent; the
-install runs this).
+install runs this). The delta script applies **two** patches: `isaaclab_newton_adaptive.patch` (above) and
+`cli_solver_flag.patch` (the `--solver` CLI arg, below), then copies the `newton_adaptive_ui/` Kit extension.
+
+## Selecting the solver - the `--solver` flag
+
+`cli_solver_flag.patch` adds a `--solver {mujoco,mujoco-adaptive,sap,sap-adaptive}` argument to the stock
+`scripts/reinforcement_learning/rsl_rl/train_rsl_rl.py` (so it works straight off `./isaaclab.sh train`).
+It maps the choice onto the resolved `MJWarpSolverCfg` latches that `_build_solver` reads:
+
+| `--solver` | `backend` | `adaptive` | `sap_adaptive` | constructs |
+|---|---|---|---|---|
+| `mujoco` | `mujoco` | `False` | `False` | `SolverMuJoCo` (fixed-step, stock) |
+| `mujoco-adaptive` | `mujoco` | `True` | `False` | `SolverMuJoCoAdaptive` (step-doubling) |
+| `sap` | `sap` | `False` | `False` | `SolverSAP` (fixed-step convex contact) |
+| `sap-adaptive` | `sap` | `False` | `True` | `SolverSAPAdaptive` (step-doubling SAP, even+global) |
+
+`_build_solver` branches on `backend == "sap"` first (the new `_sap` latch), then `sap_adaptive`; otherwise it
+falls through to the MuJoCo `adaptive` path. The `NEWTON_SAP=1` / `NEWTON_SAP_ADAPTIVE=1` / `NEWTON_ADAPTIVE=1`
+env vars remain as shell-level overrides, but `--solver` is the supported front door. Requires
+`physics=newton_mjwarp` (the flag errors clearly otherwise).
+
+### SAP backend requirement - `sap_warp`
+
+The `sap` / `sap-adaptive` variants pull `SolverSAP` from the external **`sap_warp`** checkout, which has no
+installable package: `newton/_src/solvers/sap/__init__.py` adds its root to `sys.path` at import time, taken
+from `SAP_WARP_PATH` (default `~/Documents/code/sap_warp`, i.e. a sibling of the other repos). Clone it beside
+the platform and export `SAP_WARP_PATH=$PWD/../sap_warp` if it is not at that default (see the repo README's
+install flow). Without it, `--solver sap*` fails at solver-build import.
+
+### Verified run command (cube-reorient study task)
+
+```bash
+unset VIRTUAL_ENV CONDA_PREFIX CONDA_DEFAULT_ENV
+export PYTHONPATH=.../experiments/06-30-2026-experiments/shadow-hand-repose-cube
+./isaaclab.sh train --solver sap-adaptive --task Isaac-Reorient-Cube-Shadow-Rubato \
+  --external_callback env.register --rl_library rsl_rl --headless \
+  --num_envs 64 --max_iterations 1 physics=newton_mjwarp
+# swap --solver for: mujoco | mujoco-adaptive | sap | sap-adaptive
+```
+
+Proof it routes: stdout prints `[INFO] --solver=sap-adaptive -> {'backend': 'sap', 'adaptive': False,
+'sap_adaptive': True}`, and `/tmp/newton_adaptive.log` fills with step-doubling telemetry
+(`inner_dt[... spread > 0] cumulative_substeps=...`) that only the adaptive solver path writes.
 
 ## Selecting adaptive
 `_build_solver` builds `SolverMuJoCoAdaptive` when **any** of these is set (checked in this order):

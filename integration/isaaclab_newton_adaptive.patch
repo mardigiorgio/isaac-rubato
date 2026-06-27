@@ -12,7 +12,7 @@ index d9dbfd942a..bad7a4109b 100644
  [settings]
  exts."omni.kit.material.library".ui_show_list = [
 diff --git a/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager.py b/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager.py
-index f475695f0d..090cc948d5 100644
+index f475695f0d..0ff687afb3 100644
 --- a/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager.py
 +++ b/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager.py
 @@ -9,10 +9,11 @@ from __future__ import annotations
@@ -28,7 +28,7 @@ index f475695f0d..090cc948d5 100644
  
  from isaaclab.physics import PhysicsManager
  
-@@ -31,20 +32,125 @@ class NewtonMJWarpManager(NewtonManager):
+@@ -31,20 +32,128 @@ class NewtonMJWarpManager(NewtonManager):
      :attr:`NewtonCfg.debug_mode` is enabled.
      """
  
@@ -90,14 +90,17 @@ index f475695f0d..090cc948d5 100644
 +                    max_substeps=int(_env("NEWTON_ADAPTIVE_MAX_SUBSTEPS", getattr(solver_cfg, "adaptive_max_substeps", 256))),
 +                    max_rigid_contact=int(solver_cfg.sap_max_rigid_contact),
 +                    max_iterations=int(solver_cfg.sap_solver_iterations),
-+                    contact_preset_variant=str(solver_cfg.sap_contact_preset),
-+                    line_search_variant=str(solver_cfg.sap_line_search),
++                    contact_preset_variant=str(_env("NEWTON_SAP_PRESET", solver_cfg.sap_contact_preset)),
++                    line_search_variant=str(_env("NEWTON_SAP_LINE_SEARCH", solver_cfg.sap_line_search)),
 +                    contact_tau_d=float(solver_cfg.sap_contact_tau_d),
 +                )
 +                cls._adaptive = True
 +                cls._adaptive_frame = 0
 +                NewtonManager._needs_collision_pipeline = False
-+                logger.info("NewtonMJWarpManager: SolverSAPAdaptive (SAP step-doubling; even+global; CUDA graph disabled)")
++                logger.info(
++                    "NewtonMJWarpManager: SolverSAPAdaptive (SAP step-doubling; even+global; "
++                    "solver-internal per-N CUDA-graph capture, set NEWTON_SAP_ADAPTIVE_GRAPH=0 to disable)"
++                )
 +            else:
 +                # Fixed-step SAP: the RL-ideal (stable+consistent+fast). Newton's CollisionPipeline
 +                # feeds SapContacts each step (converted in _step_solver).
@@ -164,7 +167,7 @@ index f475695f0d..090cc948d5 100644
          NewtonManager._use_single_state = True
          NewtonManager._needs_collision_pipeline = not solver_cfg.use_mujoco_contacts
  
-@@ -57,6 +163,95 @@ class NewtonMJWarpManager(NewtonManager):
+@@ -57,6 +166,102 @@ class NewtonMJWarpManager(NewtonManager):
                  "use_mujoco_contacts=False or remove collision_cfg."
              )
  
@@ -182,7 +185,10 @@ index f475695f0d..090cc948d5 100644
 +        if getattr(cls, "_sap", False):
 +            if cls._adaptive:
 +                # SAP-adaptive owns its inner even+global loop + its own contacts; updates state_0.
-+                cls._solver.step_dt(substep_dt, state_0, state_1, control)
++                # step() is the boundary call (Newton signature: state_in, state_out, control,
++                # contacts, dt); the whole step-doubling + N-substep sequence is ONE single-level
++                # CUDA-graph capture owned INSIDE the solver, so the manager must NOT also wrap it.
++                cls._solver.step(state_0, state_1, control, contacts, substep_dt)
 +                cls._solver.reset(state_0, world_mask=cls._solver.diverged, flags=0)
 +            else:
 +                from newton.solvers import (
@@ -206,7 +212,9 @@ index f475695f0d..090cc948d5 100644
 +                cls._solver.step(s0, s0, c, sc, substep_dt)
 +            return
 +        if cls._adaptive:
-+            cls._solver.step_dt(substep_dt, state_0, state_1, control)
++            # MuJoCo-adaptive: step() is the boundary call (state_in, state_out, control,
++            # contacts, dt); it owns its inner step-doubling loop + its own contacts.
++            cls._solver.step(state_0, state_1, control, contacts, substep_dt)
 +            cls._solver.reset(state_0, world_mask=cls._solver.diverged, flags=0)
 +        else:
 +            cls._solver.step(state_0, state_1, control, contacts, substep_dt)
@@ -228,10 +236,12 @@ index f475695f0d..090cc948d5 100644
 +
 +    @classmethod
 +    def _supports_cuda_graph_capture(cls) -> bool:
-+        # The adaptive solver's per-frame substep count is data-dependent (host-synced boundary check),
-+        # so a statically captured CUDA graph cannot represent it. Both SAP paths also host-sync
-+        # (fixed-step SAP reads solve_result.converged each step; SAP-adaptive reads the shared N),
-+        # so capture is disabled for any SAP backend too.
++        # MANAGER-level capture stays OFF for adaptive/SAP. The adaptive solvers OWN their CUDA-graph
++        # capture INTERNALLY: step() builds a single-level per-N ScopedCapture of the whole
++        # step-doubling + N-substep sequence (n_max is host-read once per boundary, OUTSIDE the
++        # captured region, so the manager cannot know N and must not double-wrap). Returning True
++        # here would re-nest the solver's own capture inside the manager's -- the exact nested
++        # capture this refactor removed. So: solver self-captures; manager does not.
 +        return not (cls._adaptive or cls._sap)
 +
 +    @classmethod
@@ -260,7 +270,7 @@ index f475695f0d..090cc948d5 100644
      @classmethod
      def _initialize_contacts(cls) -> None:
          """Allocate contact buffers.
-@@ -81,9 +276,12 @@ class NewtonMJWarpManager(NewtonManager):
+@@ -81,9 +286,12 @@ class NewtonMJWarpManager(NewtonManager):
  
      @classmethod
      def _log_solver_debug(cls) -> None:
@@ -276,10 +286,10 @@ index f475695f0d..090cc948d5 100644
              logger.info(f"Solver convergence data: {data}")
              if data["max"] == cls._solver.mjw_model.opt.iterations:
 diff --git a/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager_cfg.py b/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager_cfg.py
-index 191ca90850..11eac77221 100644
+index 191ca90850..8bdef75dc1 100644
 --- a/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager_cfg.py
 +++ b/source/isaaclab_newton/isaaclab_newton/physics/mjwarp_manager_cfg.py
-@@ -120,6 +120,66 @@ class MJWarpSolverCfg(NewtonSolverCfg):
+@@ -120,6 +120,70 @@ class MJWarpSolverCfg(NewtonSolverCfg):
      Newton default is ``1e-6``.
      """
  
@@ -334,8 +344,12 @@ index 191ca90850..11eac77221 100644
 +    """SAP only: max SAP contact-solve iterations. Must be high enough to converge at the chosen dt
 +    (adaptive asserts convergence for a consistent step-doubling error estimate)."""
 +
-+    sap_contact_preset: str = "drake"
-+    """SAP only: contact/Jacobian precision preset (``"approx32"`` | ``"approx64"`` | ``"drake"``)."""
++    sap_contact_preset: str = "approx32"
++    """SAP only: contact/Jacobian precision preset (``"approx32"`` | ``"approx64"`` | ``"drake"``).
++
++    Default ``"approx32"`` (f32 Jacobians + f32 contact linear solve): ~1.5x faster than ``"drake"``
++    (f64) on contact scenes with no measurable loss of step-doubling stability. Set ``"drake"`` for
++    full-f64 reference accuracy."""
 +
 +    sap_line_search: str = "armijo_decay"
 +    """SAP only: line-search variant (``"monotone_decay"`` | ``"armijo_decay"`` | ``"exact_root"``)."""
