@@ -10,7 +10,7 @@ Pure stdlib -- no ``isaaclab``/``pxr`` import. Importing it as ``trossen_cube.pa
 does still run the package ``__init__`` (which imports ``gymnasium`` and registers gym
 ids), so host-only tools that lack ``gymnasium`` (e.g. :mod:`make_norails_usd`, run under a
 ``usd-core``-only interpreter) must replicate the two env lookups inline rather than import
-this module. See the native bring-up in ``README.md``.
+this module.
 
 Env overrides:
     TROSSEN_DATA_ROOT       parent of all three roots (default ``~/Documents/code/isaac-data``)

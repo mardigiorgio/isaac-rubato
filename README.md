@@ -25,12 +25,12 @@ always landing on the boundary.
 Prerequisites you install yourself: [`uv`](https://docs.astral.sh/uv/getting-started/installation/), an NVIDIA driver >= 580, `git`, and ~60 GB free disk.
 
 ```bash
-# clone the platform, the custom Newton fork, the SAP solver, and Isaac Lab at the pinned commit
+# clone the platform, the custom Newton fork, the SAP solver, and the Isaac Lab fork
+# (the fork's `develop` branch already carries the Newton + SAP integration -- no patch step needed)
 git clone https://github.com/mardigiorgio/isaac-rubato.git && cd isaac-rubato
 git clone https://github.com/mardigiorgio/newton-adaptive.git ../newton-adaptive
 git clone https://github.com/mardigiorgio/sap_warp.git ../sap_warp
-git clone https://github.com/isaac-sim/IsaacLab.git ../IsaacLab
-git -C ../IsaacLab checkout 546551f5ba8e8e4fbbcbf589b63c6f40b7cacb3f
+git clone -b develop https://github.com/mardigiorgio/IsaacLab.git ../IsaacLab
 
 # sap_warp (the SAP / SAP-adaptive convex-contact solver) has no installable package: the Newton fork
 # adds its root to sys.path at import time. SAP_WARP_PATH points at that clone; export it (in the shell
@@ -45,12 +45,11 @@ uv sync --locked
 VIRTUAL_ENV="$PWD/.venv" OMNI_KIT_ACCEPT_EULA=YES ../IsaacLab/isaaclab.sh -i
 uv sync --inexact --locked
 
-# apply the adaptive delta to Isaac Lab, then verify
-ISAACLAB="$PWD/../IsaacLab" bash integration/apply_isaaclab_delta.sh ../IsaacLab
+# verify (the Newton + SAP delta already lives in the IsaacLab fork's develop branch)
 uv run python install/verify.py
 ```
 
-`verify.py` confirms the Newton fork is the active import and `SolverMuJoCoAdaptive` is present. Update the fork later with `git -C ../newton-adaptive pull && uv lock --upgrade-package newton && uv sync --inexact --locked`, then re-run the delta step.
+`verify.py` confirms the Newton fork is the active import and `SolverMuJoCoAdaptive` is present. Update the Newton fork later with `git -C ../newton-adaptive pull && uv lock --upgrade-package newton && uv sync --inexact --locked`; pull Isaac Lab changes with `git -C ../IsaacLab pull origin develop`.
 
 ## Getting started
 
@@ -79,9 +78,10 @@ SOLVER=adaptive VIDEO=1 bash franka-reach/train.sh
 
 ### Selecting the solver (`--solver`)
 
-The Newton backend exposes four solver variants through the `--solver` flag on the stock `isaaclab.sh
-train` entry point (added by `integration/cli_solver_flag.patch`, applied by the delta script). It drives
-the `MJWarpSolverCfg` latches (`backend` / `adaptive` / `sap_adaptive`) read by `NewtonMJWarpManager`:
+The Newton backend exposes four solver variants through the `--solver` flag on the `isaaclab.sh
+train` entry point (`scripts/reinforcement_learning/rsl_rl/train_rsl_rl.py`, baked into the IsaacLab
+fork's `develop` branch). It drives the `MJWarpSolverCfg` latches (`backend` / `adaptive` /
+`sap_adaptive`) read by `NewtonMJWarpManager`:
 
 | `--solver` | backend | constructs | notes |
 |---|---|---|---|
