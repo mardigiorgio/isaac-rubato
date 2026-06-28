@@ -28,7 +28,7 @@ Prerequisites you install yourself: [`uv`](https://docs.astral.sh/uv/getting-sta
 # clone the platform, the custom Newton fork, the SAP solver, and Isaac Lab at the pinned commit
 git clone https://github.com/mardigiorgio/isaac-rubato.git && cd isaac-rubato
 git clone https://github.com/mardigiorgio/newton-adaptive.git ../newton-adaptive
-git clone https://github.com/sap-sim/sap_warp.git ../sap_warp
+git clone https://github.com/mardigiorgio/sap_warp.git ../sap_warp
 git clone https://github.com/isaac-sim/IsaacLab.git ../IsaacLab
 git -C ../IsaacLab checkout 546551f5ba8e8e4fbbcbf589b63c6f40b7cacb3f
 
