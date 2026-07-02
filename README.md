@@ -90,13 +90,12 @@ fork's `develop` branch). It drives the `MJWarpSolverCfg` latches (`backend` / `
 | `sap` | SAP (`sap_warp`) | `SolverSAP` | fixed-step convex compliant contact |
 | `sap-adaptive` | SAP (`sap_warp`) | `SolverSAPAdaptive` | step-doubling SAP (even + global tiling) |
 
-The two `sap*` variants require the `sap_warp` clone on `SAP_WARP_PATH` (see install). Run the cube-reorient
-study task (env on `PYTHONPATH`, registered via `--external_callback env.register`) with, e.g.:
+The two `sap*` variants require the `sap_warp` clone on `SAP_WARP_PATH` (see install). Run the built-in
+cube-reorient study task (Newton-tested: Allegro hand) with, e.g.:
 
 ```bash
-export PYTHONPATH="$PWD/shadow-hand-repose-cube"
 ./../../../IsaacLab/isaaclab.sh train --solver sap-adaptive \
-  --task Isaac-Reorient-Cube-Shadow-Rubato --external_callback env.register \
+  --task Isaac-Reorient-Cube-Allegro-Direct \
   --rl_library rsl_rl --headless --num_envs 64 --max_iterations 1 physics=newton_mjwarp
 # swap --solver for mujoco | mujoco-adaptive | sap | sap-adaptive
 ```
